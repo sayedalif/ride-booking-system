@@ -2,16 +2,17 @@
 import { Server } from 'http';
 import mongoose from 'mongoose';
 import app from './app';
+import { envVars } from './app/config/env';
 
 let server: Server;
 
 const startServer = async () => {
   try {
-    await mongoose.connect('mongodb://localhost:27017/rideBookingSystem');
+    await mongoose.connect(envVars.DB_URL);
     console.log('Connected To DB!!');
 
-    server = app.listen(5000, () => {
-      console.log('Server is listening on port 5000');
+    server = app.listen(envVars.PORT, () => {
+      console.log(`Server is listening on port ${envVars.PORT}`);
     });
   } catch (error) {
     console.log(error);
@@ -69,4 +70,3 @@ process.on('uncaughtException', err => {
   // if no server is detected, but some uncaught exception occurs then also shut down the server
   process.exit(1);
 });
-

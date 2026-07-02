@@ -38,7 +38,7 @@ const createUser = async (payload: Partial<IUser>) => {
 };
 
 const getAllUsers = async () => {
-  const data = await User.find();
+  const data = await User.find({ isDeleted: false }).select('-password'); // Exclude password field from the result
   const totalUsers = await User.countDocuments();
 
   return {
@@ -62,7 +62,7 @@ const updateUser = async (
 
   /*
    * email - can not update
-   * name, phone, password, adress
+   * name, phone, password, address
    * password - re hashing
    * only admin super admin can change - role, isDeleted, isActive, isVerified
    * admin can not change super admin role

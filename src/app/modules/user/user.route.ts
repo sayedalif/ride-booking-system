@@ -6,17 +6,20 @@ import { checkAuth } from '../../middlewares/checkAuth';
 import { Role } from './user.interface';
 
 const router = Router();
-
+// user registration route
 router.post(
   '/register',
   validateRequest(createUserZodSchema),
   UserController.createUser
 );
+// user retrieval route - admin only
 router.get(
   '/all-users',
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   UserController.getAllUsers
 );
+
+// user update route
 router.patch(
   '/:id',
   validateRequest(updateUserZodSchema),

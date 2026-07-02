@@ -17,7 +17,8 @@ const credentialsLogin = catchAsync(
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     passport.authenticate('local', async (err: any, user: any, info: any) => {
-      
+      console.log('🚀 ~ user:', user);
+
       if (err) {
         return next(new AppError(401, err));
       }
@@ -26,9 +27,14 @@ const credentialsLogin = catchAsync(
         return next(new AppError(401, info.message));
       }
 
-      const userTokens = createUserTokens(user);
+      // 1. Convert Mongoose document to plain JS object FIRST
+      const plainUser = user.toObject();
 
-      const { password, ...rest } = user.toObject();
+      // 2. Pass the plain object to your token generator
+      const userTokens = createUserTokens(plainUser);
+
+      // 3. Destructure the password out of the plain object
+      const { password, ...rest } = plainUser;
 
       setAuthCookie(res, userTokens);
 
@@ -53,7 +59,7 @@ const credentialsLogin = catchAsync(
     //   httpOnly: true,
     //   secure: false,
     // });
-  }
+  },
 );
 
 const getNewAccessToken = catchAsync(
@@ -62,11 +68,11 @@ const getNewAccessToken = catchAsync(
     if (!refreshToken) {
       throw new AppError(
         StatusCodes.BAD_REQUEST,
-        'No refresh token received from cookies'
+        'No refresh token received from cookies',
       );
     }
     const tokenInfo = await AuthServices.getNewAccessToken(
-      refreshToken as string
+      refreshToken as string,
     );
 
     setAuthCookie(res, tokenInfo);
@@ -77,7 +83,7 @@ const getNewAccessToken = catchAsync(
       message: 'New Access Token Retrieved Successfully',
       data: tokenInfo,
     });
-  }
+  },
 );
 
 const logout = catchAsync(
@@ -100,7 +106,7 @@ const logout = catchAsync(
       message: 'Logged Out Successfully',
       data: null,
     });
-  }
+  },
 );
 
 const resetPassword = catchAsync(
@@ -118,7 +124,7 @@ const resetPassword = catchAsync(
       message: 'Password Updated Successfully',
       data: null,
     });
-  }
+  },
 );
 const googleCallbackController = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -145,7 +151,7 @@ const googleCallbackController = catchAsync(
     // });
 
     res.redirect(`${envVars.FRONTEND_URL}/${redirectTo}`);
-  }
+  },
 );
 
 export const AuthControllers = {

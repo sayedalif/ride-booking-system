@@ -7,6 +7,19 @@ import { envVars } from '../config/env';
 import { JwtPayload } from 'jsonwebtoken';
 
 export const createUserTokens = (user: Partial<IUser>) => {
+  console.log('🚀 ~ createUserTokens ~ user:', user);
+
+  console.log('_id:', user._id);
+  console.log('email:', user.email);
+  console.log('role:', user.role);
+
+  if (!user._id || !user.email || !user.role) {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      'User object is missing required fields for token generation',
+    );
+  }
+
   const jwtPayload = {
     userId: user._id,
     email: user.email,
@@ -16,13 +29,14 @@ export const createUserTokens = (user: Partial<IUser>) => {
   const accessToken = generateToken(
     jwtPayload,
     process.env.JWT_ACCESS_SECRET as string,
-    process.env.JWT_ACCESS_EXPIRES as string
+    process.env.JWT_ACCESS_EXPIRES as string,
   );
+  console.log('🚀 ~ createUserTokens ~ accessToken:', accessToken);
 
   const refreshToken = generateToken(
     jwtPayload,
     process.env.JWT_REFRESH_SECRET as string,
-    process.env.JWT_REFRESH_EXPIRES as string
+    process.env.JWT_REFRESH_EXPIRES as string,
   );
 
   return {
@@ -32,16 +46,20 @@ export const createUserTokens = (user: Partial<IUser>) => {
 };
 
 export const createNewAccessTokenWithRefreshToken = async (
-  refreshToken: string
+  refreshToken: string,
 ) => {
   const verifiedRefreshToken = verifyToken(
     refreshToken,
-    envVars.JWT_REFRESH_SECRET
+    envVars.JWT_REFRESH_SECRET,
   ) as JwtPayload;
 
   const isUserExists = await User.findOne({
     email: verifiedRefreshToken.email,
   });
+  console.log(
+    '🚀 ~ createNewAccessTokenWithRefreshToken ~ isUserExists:',
+    isUserExists,
+  );
 
   if (!isUserExists) {
     throw new AppError(StatusCodes.BAD_REQUEST, 'User does not exist');
@@ -53,7 +71,7 @@ export const createNewAccessTokenWithRefreshToken = async (
   ) {
     throw new AppError(
       StatusCodes.BAD_REQUEST,
-      `User is ${isUserExists.isActive}`
+      `User is ${isUserExists.isActive}`,
     );
   }
 
@@ -70,7 +88,11 @@ export const createNewAccessTokenWithRefreshToken = async (
   const accessToken = generateToken(
     jwtPayload,
     envVars.JWT_ACCESS_SECRET,
-    envVars.JWT_ACCESS_EXPIRES
+    envVars.JWT_ACCESS_EXPIRES,
+  );
+  console.log(
+    '🚀 ~ createNewAccessTokenWithRefreshToken ~ accessToken:',
+    accessToken,
   );
 
   return accessToken;

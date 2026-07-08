@@ -1,3 +1,5 @@
+import { Document } from 'mongoose';
+
 export enum Role {
   SUPER_ADMIN = 'SUPER_ADMIN',
   ADMIN = 'ADMIN',
@@ -6,35 +8,62 @@ export enum Role {
 }
 
 export interface IAuthProvider {
-  provider: 'google' | 'credentials'; // e.g., 'google', 'credentials'
+  provider: 'google' | 'credentials' | string;
   providerId: string;
 }
 
 export enum IsActive {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
-  BLOCKED = 'BLOCKED', // for users or riders
-  SUSPENDED = 'SUSPENDED', // for drivers
+  BLOCKED = 'BLOCKED',
+  SUSPENDED = 'SUSPENDED',
+  PENDING = 'PENDING',
 }
 
-// Add this to user.interface.ts
 export interface IAddress {
-  home?: string; // You can make these required if you want
+  home?: string;
   work?: string;
-  [key: string]: string | undefined; // Allows any custom dynamic property names
+  [key: string]: string | undefined;
 }
 
-export interface IUser {
-  _id?: string;
+export interface IRiderProfile {
+  joinedAt: Date;
+}
+
+export interface IVehicleDetails {
+  type: 'bike' | 'car' | null;
+  plateNumber: string;
+}
+
+export interface IDriverProfile {
+  status: IsActive;
+  licenseNumber: string;
+  nidNumber: string;
+  vehicleDetails: IVehicleDetails;
+  isOnline: boolean;
+  rating: number;
+  appliedAt: Date | null;
+}
+
+export interface IEmergencyContact {
   name: string;
-  email: string;
+  phoneNumber: string;
+}
+
+// Optional: Extending Document gives you access to Mongoose methods like .save(), ._id, etc.
+export interface IUser extends Document {
+  fullName: string;
+  phoneNumber: string;
+  email?: string;
   password: string;
-  phone: string;
+  role: Role;
+  riderProfile: IRiderProfile;
   picture?: string;
   address?: IAddress;
-  isDeleted?: string;
-  isActive?: IsActive;
-  isVerified?: boolean;
-  role: Role;
+  driverProfile?: IDriverProfile;
+  isDeleted: boolean;
+  isActive: IsActive;
+  isVerified: boolean;
+  emergencyContacts: IEmergencyContact[];
   auths: IAuthProvider[];
 }

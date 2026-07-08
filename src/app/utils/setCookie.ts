@@ -2,7 +2,7 @@ import { Response } from 'express';
 
 export interface AuthTokens {
   accessToken?: string;
-  refreshToken?: string;
+  refreshToken: string;
 }
 
 export const setAuthCookie = (res: Response, tokenInfo: AuthTokens) => {

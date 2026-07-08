@@ -1,41 +1,43 @@
 import { Router } from 'express';
 // import { UserController } from './user.controller';
 // import { createUserZodSchema, updateUserZodSchema } from './user.validation';
-import { validateRequest } from '../../middlewares/validateRequest';
-import { createDriverZodSchema } from './driver.validation';
+// import { validateRequest } from '../../middlewares/validateRequest';
+// import { createDriverZodSchema } from './driver.validation';
 import { DriverController } from './driver.controller';
 import { Role } from '../user/user.interface';
 import { checkAuth } from '../../middlewares/checkAuth';
+import { validateRequest } from '../../middlewares/validateRequest';
+import { updateOnlineStatusZodSchema } from '../user/user.validation';
 // import { checkAuth } from '../../middlewares/checkAuth';
 // import { Role } from './user.interface';
 
 const router = Router();
 
-router.post(
-  '/register',
-  validateRequest(createDriverZodSchema),
-  DriverController.createDriver
-);
 router.get(
   '/all-drivers',
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
-  DriverController.getAllDrivers
-);
-router.patch(
-  '/:id',
-  // validateRequest(updateDriverZodSchema),
-  checkAuth(...Object.values(Role)),
-  DriverController.updateDriver
+  DriverController.getAllDrivers,
 );
 
-// ! todo: approve driver but i
-//  need to make sure it is only used for drivers approval
-// not for users or riders
-// also i need to make sure drivers has all the required documents and info
+// for admin and super admin to approve driver
 router.patch(
-  '/drivers/approve/:id',
-  // validateRequest(updateDriverZodSchema),
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN)
+  '/approve/:id',
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  DriverController.updateDriverApproval,
+);
+
+router.patch(
+  '/toggle-availability',
+  checkAuth(Role.DRIVER), // Strictly locked to the DRIVER role context
+  validateRequest(updateOnlineStatusZodSchema), // Ensures the request body has a valid boolean isOnline field
+  DriverController.updateOnlineStatus,
+);
+
+// GET: Retrieve earning statistics for the logged-in driver
+router.get(
+  '/me/earnings',
+  checkAuth(Role.DRIVER), // Strictly limits access to Drivers
+  DriverController.getMyEarnings,
 );
 
 export const DriverRoutes = router;

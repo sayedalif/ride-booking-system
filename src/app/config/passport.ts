@@ -6,10 +6,11 @@ import {
 } from 'passport-google-oauth20';
 import { envVars } from './env';
 import { User } from '../modules/user/user.model';
-import { Role } from '../modules/user/user.interface';
+// import { Role } from '../modules/user/user.interface';
 import { Strategy as localStrategy } from 'passport-local';
 import bcryptjs from 'bcryptjs';
 
+// email and password strategy
 passport.use(
   new localStrategy(
     {
@@ -51,6 +52,7 @@ passport.use(
   )
 );
 
+// Google OAuth strategy
 passport.use(
   new GoogleStrategy(
     {
@@ -78,7 +80,7 @@ passport.use(
             name: profile.displayName,
             email,
             picture: profile.photos?.[0].value,
-            role: Role.RIDER,
+            // role: Role.RIDER,
             isVerified: true,
             auths: [
               {

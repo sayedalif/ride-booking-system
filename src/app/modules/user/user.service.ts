@@ -5,6 +5,7 @@ import { User } from './user.model';
 import bcryptjs from 'bcryptjs';
 import { envVars } from '../../config/env';
 import { JwtPayload } from 'jsonwebtoken';
+import { IsActive, IDriverProfile } from './user.interface';
 
 const createUser = async (payload: Partial<IUser>) => {
   const { email, password, ...rest } = payload;
@@ -103,6 +104,56 @@ const updateUser = async (
   return newUpdatedUser;
 };
 
+// We pick only the fields that the client is allowed to send from the Zod validation schema
+type IDriverApplicationPayload = Pick<
+  IDriverProfile,
+  'licenseNumber' | 'nidNumber' | 'vehicleDetails'
+>;
+
+const applyForDriver = async (userId: string, payload: IDriverApplicationPayload) => {
+  // 1. Fetch the user to check their current driver status
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // 2. Prevent re-application if already approved or pending
+  if (user.driverProfile) {
+    if (user.driverProfile.status === IsActive.ACTIVE) {
+      throw new Error('You are already an active driver on our platform');
+    }
+    if (user.driverProfile.status === IsActive.PENDING) {
+      throw new Error('Your previous driver application is already pending admin review');
+    }
+  }
+
+  // 3. Construct the full driver profile object with backend-controlled defaults
+  const driverProfileData: IDriverProfile = {
+    status: IsActive.PENDING, // Forces status to PENDING regardless of user input
+    licenseNumber: payload.licenseNumber,
+    nidNumber: payload.nidNumber,
+    vehicleDetails: payload.vehicleDetails,
+    isOnline: false,
+    rating: 5.0, // Start new drivers with a fresh 5.0 rating
+    appliedAt: new Date(),
+  };
+
+  // 4. Update the user document by setting the driver profile object
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { 
+      $set: { driverProfile: driverProfileData } 
+    },
+    { 
+      new: true, // Returns the modified document rather than the original
+      runValidators: true // Ensures Mongoose enums are respected
+    }
+  ).select('-passwordHash'); // Exclude sensitive data from the return value
+
+  return updatedUser;
+};
+
 /* const updateUserApproval = async (
   userId: string,
   payload: Partial<IUser>,
@@ -149,8 +200,37 @@ const updateUser = async (
   return newUpdatedUser;
 }; */
 
+interface IUpdateStatusPayload {
+  isDeleted?: boolean;
+  isActive?: IsActive;
+  isVerified?: boolean;
+}
+
+const updateUserAdministrativeStatus = async (userId: string, payload: IUpdateStatusPayload) => {
+  // 1. Verify user exists before updating
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error('User not found'); // Replace with your custom AppError if you use one
+  }
+
+  // 2. Perform the update
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { $set: payload },
+    { 
+      new: true, // Returns the modified document
+      runValidators: true // Ensures Mongoose enum validations are respected
+    }
+  ).select('-password'); // Exclude password from the response
+
+  return updatedUser;
+};
+
 export const UserServices = {
   createUser,
   getAllUsers,
   updateUser,
+  applyForDriver,
+  // updateUserApproval,
+  updateUserAdministrativeStatus
 };

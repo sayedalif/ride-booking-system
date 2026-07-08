@@ -12,18 +12,13 @@ const createUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const user = await UserServices.createUser(req.body);
 
-    //   res
-    //     .status(StatusCodes.CREATED)
-    //     .json({ success: true, message: 'user created successfully', user });
-    // }
-
     sendResponse(res, {
       success: true,
       message: 'user created successfully',
       statusCode: StatusCodes.CREATED,
       data: user,
     });
-  }
+  },
 );
 
 const getAllUsers = catchAsync(
@@ -36,8 +31,42 @@ const getAllUsers = catchAsync(
       data: result.data,
       meta: result.meta,
     });
-  }
+  },
 );
+
+const applyForDriver = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    // Extracted by your authentication middleware (e.g., verifyAuth / verifyJWT)
+    // Adjust the property path if your middleware stores it under req.user.id
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (req.user as any).userId;
+
+    // Extract the validated request body
+    const driverApplicationData = req.body;
+
+    // Invoke the business logic layer
+    const result = await UserServices.applyForDriver(
+      userId,
+      driverApplicationData,
+    );
+
+    // Return a standardized response format
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message:
+        'Driver application submitted successfully. It is now pending review.',
+      data: result,
+    });
+  } catch (error) {
+    // Pass errors directly to your Express global error handler
+    next(error);
+  }
+};
 
 const updateUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -59,7 +88,7 @@ const updateUser = catchAsync(
       message: 'User updated successfully',
       data: user,
     });
-  }
+  },
 );
 
 // const updateApproveUser = catchAsync(
@@ -108,10 +137,29 @@ const updateUser = catchAsync(
   }
 ); */
 
+const updateUserStatus = catchAsync(async (req: Request, res: Response) => {
+  const { id: targetUserId } = req.params;
+  const payload = req.body;
+
+  const result = await UserServices.updateUserAdministrativeStatus(
+    targetUserId,
+    payload,
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'User administrative status updated successfully',
+    data: result,
+  });
+});
+
 export const UserController = {
   createUser,
   getAllUsers,
   updateUser,
   // updateApproveUser,
   // updateUserApproval,
+  applyForDriver,
+  updateUserStatus,
 };

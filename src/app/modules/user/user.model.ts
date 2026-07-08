@@ -1,5 +1,5 @@
 import { model, Schema } from 'mongoose';
-import { IAuthProvider, IsActive, IUser } from './user.interface';
+import { IAuthProvider, IsActive, IUser, Role } from './user.interface';
 
 export const authProviderSchema = new Schema<IAuthProvider>(
   {
@@ -8,6 +8,27 @@ export const authProviderSchema = new Schema<IAuthProvider>(
   },
   { versionKey: false, _id: false },
 );
+
+// 1. Create the Driver Profile Schema separately
+const driverProfileSchema = new Schema(
+  {
+    status: {
+      type: String,
+      enum: Object.values(IsActive),
+      default: IsActive.INACTIVE,
+    },
+    licenseNumber: { type: String, required: true },
+    nidNumber: { type: String, required: true },
+    vehicleDetails: {
+      type: { type: String, enum: ['bike', 'car'], required: true },
+      plateNumber: { type: String, required: true },
+    },
+    isOnline: { type: Boolean, default: false },
+    rating: { type: Number, default: 5.0 },
+    appliedAt: { type: Date, default: Date.now },
+  },
+  { _id: false },
+); // Prevent extra ObjectId
 
 // 1. Create the address schema
 const addressSchema = new Schema(
@@ -25,26 +46,42 @@ const addressSchema = new Schema(
 
 const userSchema = new Schema<IUser>(
   {
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    // role: {
-    //   type: String,
-    //   enum: Object.values(Role),
-    // },
-    phone: { type: String, required: true },
+    // --- Core Identity Layer (Always Shared) ---
+    fullName: { type: String, required: true },
+    phoneNumber: { type: String, required: true, unique: true },
+    email: { type: String, unique: true, sparse: true },
+    password: { type: String },
+    role: {
+      type: String,
+      enum: [Role.RIDER, Role.DRIVER],
+      default: Role.RIDER,
+    },
+    riderProfile: {
+      joinedAt: { type: Date, default: Date.now },
+    },
     picture: { type: String },
 
     // 2. Apply the address schema here
     address: { type: addressSchema },
+    // 2. Attach it to the user schema and default to null
+    driverProfile: {
+      type: driverProfileSchema,
+      default: null,
+    },
 
     isDeleted: { type: Boolean, default: false },
     isActive: {
       type: String,
-      enum: Object.values(IsActive),
+      enum: [IsActive.ACTIVE, IsActive.INACTIVE, IsActive.BLOCKED, IsActive.SUSPENDED, IsActive.PENDING],
       default: IsActive.ACTIVE,
     },
     isVerified: { type: Boolean, default: false },
+    emergencyContacts: [
+      {
+        name: { type: String },
+        phoneNumber: { type: String },
+      },
+    ],
     auths: [authProviderSchema],
   },
   {
